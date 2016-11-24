@@ -1,0 +1,32 @@
+stages:
+    - build
+    - test
+    - release
+
+variables:
+    CONTAINER_TEST_IMAGE: $CI_REGISTRY_IMAGE:$CI_BUILD_REF_NAME
+    CONTAINER_RELEASE_IMAGE: "registry.nocsi.org/registry:latest"
+    DOCKER_DRIVER: overlay
+
+before_script:
+    - docker login -u "gitlab-ci-token" -p "$CI_BUILD_TOKEN" $CI_REGISTRY
+
+build:
+    stage: build
+    script:
+        - docker build -t $CONTAINER_TEST_IMAGE github.com/docker/distribution
+        - docker push $CONTAINER_TEST_IMAGE
+
+test:
+    stage: test
+    script:
+        - docker pull $CONTAINER_TEST_IMAGE
+
+release-image:
+    stage: release
+    script:
+        - docker pull $CONTAINER_TEST_IMAGE
+        - docker tag $CONTAINER_TEST_IMAGE $CONTAINER_RELEASE_IMAGE
+        - docker push $CONTAINER_RELEASE_IMAGE
+    only: 
+        - master
